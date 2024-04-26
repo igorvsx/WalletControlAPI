@@ -60,6 +60,8 @@ async def add_user(
 
     user = await UserRepository.add_user(data)
 
+    return user
+
 @router.get("")
 async def get_users() -> list[SUser]:
     users = await UserRepository.get_users()
