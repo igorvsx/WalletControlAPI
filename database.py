@@ -42,23 +42,35 @@ class AccountOrm(Base):
 
     user = relationship("UserOrm", back_populates="accounts")
 
-    # transactions: Mapped[List["TransactionOrm"]] = relationship(
-    #     back_populates="transaction", cascade="all, delete-orphan"
-    # )
+    transactions: Mapped[List["TransactionOrm"]] = relationship(
+        back_populates="account", cascade="all, delete-orphan"
+    )
 
-# class TransactionOrm(Base):
-#     __tablename__ = "transactions"
-#
-#     id: Mapped[int] = mapped_column(primary_key=True)
-#     name: Mapped[str]
-#     description: Mapped[str]
-#     amount: Mapped[float]
-#     date: Mapped[str]
-#     transaction_type: Mapped[str]
-#     category: Mapped[str]
-#     account_id: Mapped[int] = mapped_column(ForeignKey('accounts.id'))
-#
-#     account = relationship("AccountOrm", back_populates="transactions")
+class TransactionOrm(Base):
+    __tablename__ = "transactions"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str]
+    description: Mapped[str]
+    amount: Mapped[float]
+    date: Mapped[str]
+    transaction_type: Mapped[str]
+    account_id: Mapped[int] = mapped_column(ForeignKey('accounts.id'))
+
+    account = relationship("AccountOrm", back_populates="transactions")
+
+    categories: Mapped[List["CategoryOrm"]] = relationship(
+        back_populates="transaction", cascade="all, delete-orphan"
+    )
+
+class CategoryOrm(Base):
+    __tablename__ = "categories"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str]
+    transaction_id: Mapped[int] = mapped_column(ForeignKey('transactions.id'))
+
+    transaction = relationship("TransactionOrm", back_populates="categories")
 
 # user_table = Table(
 #     "users",

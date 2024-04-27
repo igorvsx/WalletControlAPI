@@ -8,10 +8,10 @@ from router import accountRouter as account_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # await delete_tables()
-    # print("База очищена")
-    # await create_tables()
-    # print("База готова")
+    await delete_tables()
+    print("База очищена")
+    await create_tables()
+    print("База готова")
     yield
     print("Выключение")
 
@@ -20,5 +20,5 @@ app.include_router(user_router)
 app.include_router(account_router)
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="192.168.0.115", port=8000)
+    uvicorn.run(app, host="192.168.184.172", port=8000)
 

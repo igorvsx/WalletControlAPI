@@ -3,8 +3,8 @@ from sqlalchemy import select, update, delete
 
 # from database import new_session, UserOrm
 from database import new_session
-from database import UserOrm, AccountOrm
-from schemas import SUserAdd, SUser, SAccount, SAccountAdd
+from database import UserOrm, AccountOrm, TransactionOrm
+from schemas import SUserAdd, SUser, SAccount, SAccountAdd, STransaction, STransactionAdd
 
 class UserRepository:
     @classmethod
@@ -129,3 +129,13 @@ class AccountRepository:
             accounts_models = result.scalars().all()
             account_schemas = [SAccount.model_validate(account_models) for account_models in accounts_models]
             return account_schemas
+
+class TransactionRepository:
+    @classmethod
+    async def add_transaction(cls, data: STransactionAdd) -> dict:
+        async with new_session() as session:
+            transaction = TransactionOrm(**data.dict())
+            session.add(transaction)
+            await session.flush()
+            await session.commit()
+            return transaction
