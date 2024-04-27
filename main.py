@@ -8,10 +8,10 @@ from router import accountRouter as account_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await delete_tables()
-    print("База очищена")
-    await create_tables()
-    print("База готова")
+    # await delete_tables()
+    # print("База очищена")
+    # await create_tables()
+    # print("База готова")
     yield
     print("Выключение")
 

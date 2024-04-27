@@ -139,3 +139,20 @@ class TransactionRepository:
             await session.flush()
             await session.commit()
             return transaction
+
+    @classmethod
+    async def get_transactions_by_account_id(cls, account_id: int) -> list[TransactionOrm]:
+        async with new_session() as session:
+            query = select(TransactionOrm).where(TransactionOrm.account_id == account_id)
+            result = await session.execute(query)
+            transactions = result.scalars().all()
+            return transactions
+
+    @classmethod
+    async def get_transactions(cls) -> list[STransaction]:
+        async with new_session() as session:
+            query = select(TransactionOrm)
+            result = await session.execute(query)
+            transactions_models = result.scalars().all()
+            transaction_schemas = [STransaction.model_validate(transaction_models) for transaction_models in transactions_models]
+            return transaction_schemas

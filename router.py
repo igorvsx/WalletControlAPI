@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Request, Body, HTTPException, Path
-from schemas import SUserAdd, SUser, SAccountAdd, SAccount
-from repository import UserRepository, AccountRepository
+from schemas import SUserAdd, SUser, SAccountAdd, SAccount, STransactionAdd, STransaction
+from repository import UserRepository, AccountRepository, TransactionRepository
 from typing import Annotated
 import random
 import string
@@ -44,6 +44,11 @@ router = APIRouter(
 accountRouter = APIRouter(
     prefix="/accounts",
     tags=["Аккаунты"],
+)
+
+transactionRouter = APIRouter(
+    prefix="/transactions",
+    tags=["Транзакции"],
 )
 
 @router.post("/add")
@@ -159,3 +164,21 @@ async def add_account(
 async def get_accounts() -> list[SAccount]:
     accounts = await AccountRepository.get_accounts()
     return accounts
+
+@transactionRouter.get("")
+async def get_transactions() -> list[STransaction]:
+    transactions = await TransactionRepository.get_transactions()
+    return transactions
+
+@transactionRouter.get("/account/{account_id}")
+async def get_transactions_by_account_id(account_id: int) -> list[STransaction]:
+    transactions = await TransactionRepository.get_transactions_by_account_id(account_id)
+    if not transactions:
+        raise HTTPException(status_code=404, detail="Транзакции для счета с данным идентификатором не найдены")
+    return transactions
+
+@transactionRouter.post("/add")
+async def add_transactions(
+        data: STransactionAdd = Body(...)
+):
+    transaction = await TransactionRepository.add_transaction(data)

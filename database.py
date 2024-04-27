@@ -54,7 +54,7 @@ class TransactionOrm(Base):
     description: Mapped[str]
     amount: Mapped[float]
     date: Mapped[str]
-    transaction_type: Mapped[str]
+    income: Mapped[bool]
     account_id: Mapped[int] = mapped_column(ForeignKey('accounts.id'))
 
     account = relationship("AccountOrm", back_populates="transactions")
