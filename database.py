@@ -25,7 +25,6 @@ class UserOrm(Base):
     login: Mapped[str]
     email: Mapped[str]
     password: Mapped[str]
-    balance: Mapped[float]
     code: Mapped[str]
 
     accounts: Mapped[List["AccountOrm"]] = relationship(
@@ -56,21 +55,20 @@ class TransactionOrm(Base):
     date: Mapped[str]
     income: Mapped[bool]
     account_id: Mapped[int] = mapped_column(ForeignKey('accounts.id'))
+    category_id: Mapped[int] = mapped_column(ForeignKey('categories.id'))
 
     account = relationship("AccountOrm", back_populates="transactions")
-
-    categories: Mapped[List["CategoryOrm"]] = relationship(
-        back_populates="transaction", cascade="all, delete-orphan"
-    )
+    category = relationship("CategoryOrm", back_populates="transactions")
 
 class CategoryOrm(Base):
     __tablename__ = "categories"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str]
-    transaction_id: Mapped[int] = mapped_column(ForeignKey('transactions.id'))
 
-    transaction = relationship("TransactionOrm", back_populates="categories")
+    transactions: Mapped[List["TransactionOrm"]] = relationship(
+        back_populates="category", cascade="all, delete-orphan"
+    )
 
 # user_table = Table(
 #     "users",

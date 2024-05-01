@@ -5,7 +5,6 @@ class SUserAdd(BaseModel):
     login: str
     email: str
     password: str
-    balance: float
     code: str
 
 class SUser(SUserAdd):
@@ -28,11 +27,19 @@ class STransactionAdd(BaseModel):
     description: str
     amount: float
     date: str
-    transaction_type: str
-    category: str
+    income: bool
     account_id: int
+    category_id: int
 
 class STransaction(STransactionAdd):
+    id: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+class SCategoryAdd(BaseModel):
+    name: str
+
+class SCategory(SCategoryAdd):
     id: int
 
     model_config = ConfigDict(from_attributes=True)

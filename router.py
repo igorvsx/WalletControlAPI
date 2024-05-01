@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Request, Body, HTTPException, Path
-from schemas import SUserAdd, SUser, SAccountAdd, SAccount, STransactionAdd, STransaction
-from repository import UserRepository, AccountRepository, TransactionRepository
+from schemas import SUserAdd, SUser, SAccountAdd, SAccount, STransactionAdd, STransaction, SCategoryAdd, SCategory
+from repository import UserRepository, AccountRepository, TransactionRepository, CategoryRepository
 from typing import Annotated
 import random
 import string
@@ -51,6 +51,11 @@ transactionRouter = APIRouter(
     tags=["Транзакции"],
 )
 
+categoryRouter = APIRouter(
+    prefix="/categories",
+    tags=["Категории"],
+)
+
 @router.post("/add")
 async def add_user(
         # user: Annotated[SUserAdd, Depends()],
@@ -94,7 +99,6 @@ async def request_password_recovery(data: SUserAdd = Body(...)):
         "login": user.login,
         "email": user.email,
         "password": user.password,
-        "balance": user.balance,
         "code": user.code
     }
 
@@ -126,7 +130,6 @@ async def get_user_by_login(login: str) -> SUser:
         "login": user.login,
         "email": user.email,
         "password": user.password,
-        "balance": user.balance,
         "code": user.code,
         "id": user.id
     }
@@ -142,7 +145,6 @@ async def get_user_by_email(email: str) -> SUser:
         "login": user.login,
         "email": user.email,
         "password": user.password,
-        "balance": user.balance,
         "code": user.code,
         "id": user.id
     }
@@ -165,9 +167,21 @@ async def get_accounts() -> list[SAccount]:
     accounts = await AccountRepository.get_accounts()
     return accounts
 
+@accountRouter.get("/total_balance/user/{user_id}")
+async def get_total_balance(user_id: int):
+    total_balance = await AccountRepository.get_total_balance(user_id)
+    return {"total_balance": total_balance}
+
 @transactionRouter.get("")
 async def get_transactions() -> list[STransaction]:
     transactions = await TransactionRepository.get_transactions()
+    return transactions
+
+@transactionRouter.get("/account/{account_id}/income/{income}")
+async def get_transactions_by_account_id_and_income(account_id: int, income: bool):
+    transactions = await TransactionRepository.get_transactions_income(account_id, income)
+    if not transactions:
+        raise HTTPException(status_code=404, detail="Транзакции для счета с данным идентификатором не найдены")
     return transactions
 
 @transactionRouter.get("/account/{account_id}")
@@ -182,3 +196,14 @@ async def add_transactions(
         data: STransactionAdd = Body(...)
 ):
     transaction = await TransactionRepository.add_transaction(data)
+
+@categoryRouter.post("/add")
+async def add_category(
+        data: SCategoryAdd = Body(...)
+):
+    category = await CategoryRepository.add_category(data)
+
+@categoryRouter.get("")
+async def get_categories() -> list[SCategory]:
+    categories = await CategoryRepository.get_categories()
+    return categories

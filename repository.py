@@ -1,10 +1,10 @@
 from fastapi import HTTPException
-from sqlalchemy import select, update, delete
+from sqlalchemy import select, update, delete, func
 
 # from database import new_session, UserOrm
 from database import new_session
-from database import UserOrm, AccountOrm, TransactionOrm
-from schemas import SUserAdd, SUser, SAccount, SAccountAdd, STransaction, STransactionAdd
+from database import UserOrm, AccountOrm, TransactionOrm, CategoryOrm
+from schemas import SUserAdd, SUser, SAccount, SAccountAdd, STransaction, STransactionAdd, SCategoryAdd, SCategory
 
 class UserRepository:
     @classmethod
@@ -12,7 +12,7 @@ class UserRepository:
         async with new_session() as session:
             user_dict = data.model_dump()
 
-            user = UserOrm(name=data.name, email=data.email, login=data.login, balance=data.balance, password=data.password, code=data.code)
+            user = UserOrm(name=data.name, email=data.email, login=data.login, password=data.password, code=data.code)
             session.add(user)
             await session.flush()
             await session.commit()
@@ -22,7 +22,6 @@ class UserRepository:
                 "login": user.login,
                 "email": user.email,
                 "password": user.password,
-                "balance": user.balance,
                 "code": user.code
             }
 
@@ -130,6 +129,14 @@ class AccountRepository:
             account_schemas = [SAccount.model_validate(account_models) for account_models in accounts_models]
             return account_schemas
 
+    @classmethod
+    async def get_total_balance(cls, user_id: int) -> float:
+        async with new_session() as session:
+            query = select(func.sum(AccountOrm.balance)).where(AccountOrm.user_id == user_id)
+            result = await session.execute(query)
+            total_balance = result.scalar()
+            return total_balance if total_balance is not None else 0.0
+
 class TransactionRepository:
     @classmethod
     async def add_transaction(cls, data: STransactionAdd) -> dict:
@@ -149,6 +156,21 @@ class TransactionRepository:
             return transactions
 
     @classmethod
+    async def get_transactions_income(cls, account_id: int, income: bool) -> list[TransactionOrm]:
+        async with new_session() as session:
+            query = select(TransactionOrm).where(TransactionOrm.account_id == account_id)
+            if income:
+                query = query.where(TransactionOrm.income == True)  # True для явного указания на поле income == True
+            else:
+                query = query.where(TransactionOrm.income == False)  # False для явного указания на поле income == False
+
+            result = await session.execute(query)
+            transactions_models = result.scalars().all()
+            transaction_schemas = [STransaction.model_validate(transaction_models) for transaction_models in
+                                   transactions_models]
+            return transaction_schemas
+
+    @classmethod
     async def get_transactions(cls) -> list[STransaction]:
         async with new_session() as session:
             query = select(TransactionOrm)
@@ -156,3 +178,23 @@ class TransactionRepository:
             transactions_models = result.scalars().all()
             transaction_schemas = [STransaction.model_validate(transaction_models) for transaction_models in transactions_models]
             return transaction_schemas
+
+class CategoryRepository:
+    @classmethod
+    async def add_category(cls, data: SCategoryAdd) -> dict:
+        async with new_session() as session:
+            category = CategoryOrm(**data.dict())
+            session.add(category)
+            await session.flush()
+            await session.commit()
+            return category
+
+    @classmethod
+    async def get_categories(cls) -> list[SCategory]:
+        async with new_session() as session:
+            query = select(CategoryOrm)
+            result = await session.execute(query)
+            categories_models = result.scalars().all()
+            category_schemas = [SCategory.model_validate(category_models) for category_models in
+                                   categories_models]
+            return category_schemas
