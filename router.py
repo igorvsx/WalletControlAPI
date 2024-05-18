@@ -172,6 +172,7 @@ async def get_total_balance(user_id: int):
     total_balance = await AccountRepository.get_total_balance(user_id)
     return {"total_balance": total_balance}
 
+
 @transactionRouter.get("")
 async def get_transactions() -> list[STransaction]:
     transactions = await TransactionRepository.get_transactions()
@@ -197,6 +198,29 @@ async def add_transactions(
 ):
     transaction = await TransactionRepository.add_transaction(data)
 
+@transactionRouter.get("/detail/{transaction_id}")
+async def get_transaction_by_id(transaction_id: int) -> STransactionAdd:
+    transaction = await TransactionRepository.get_transaction_by_id(transaction_id)
+    if not transaction:
+        raise HTTPException(status_code=404, detail="Транзакция не найдена")
+    return STransaction.model_validate(transaction)
+
+@transactionRouter.delete("/delete/{transaction_id}")
+async def delete_transaction(transaction_id: int):
+    await TransactionRepository.delete_transaction_by_id(transaction_id)
+    return {"message": "Transaction deleted successfully"}
+
+@transactionRouter.put("/update/{transaction_id}")
+async def update_transaction(transaction_id: int,
+        data: STransactionAdd = Body(...)
+):
+    try:
+        updated_transaction = await TransactionRepository.update_transaction(transaction_id, data)
+        return {"message": "Transaction updated successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update transaction: {str(e)}")
+
+
 @categoryRouter.post("/add")
 async def add_category(
         data: SCategoryAdd = Body(...)
@@ -207,3 +231,11 @@ async def add_category(
 async def get_categories() -> list[SCategory]:
     categories = await CategoryRepository.get_categories()
     return categories
+
+@categoryRouter.delete("/delete/{category_id}")
+async def delete_category(category_id: int):
+    try:
+        result = await CategoryRepository.delete_category(category_id)
+        return result
+    except NoResultFound as e:
+        raise HTTPException(status_code=404, detail=str(e))

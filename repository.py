@@ -1,5 +1,6 @@
 from fastapi import HTTPException
 from sqlalchemy import select, update, delete, func
+from sqlalchemy.exc import NoResultFound
 
 # from database import new_session, UserOrm
 from database import new_session
@@ -141,11 +142,36 @@ class TransactionRepository:
     @classmethod
     async def add_transaction(cls, data: STransactionAdd) -> dict:
         async with new_session() as session:
+            # Создание объекта транзакции
             transaction = TransactionOrm(**data.dict())
             session.add(transaction)
+
+            # Получение счета, связанного с транзакцией
+            query = select(AccountOrm).where(AccountOrm.id == data.account_id)
+            result = await session.execute(query)
+            account = result.scalar()
+
+            if not account:
+                raise HTTPException(status_code=404, detail="Account not found")
+
+            # Обновление баланса счета
+            if data.income:
+                account.balance += data.amount
+            else:
+                account.balance -= data.amount
+
+            # Сохранение изменений в базе данных
             await session.flush()
             await session.commit()
+
             return transaction
+    # async def add_transaction(cls, data: STransactionAdd) -> dict:
+    #     async with new_session() as session:
+    #         transaction = TransactionOrm(**data.dict())
+    #         session.add(transaction)
+    #         await session.flush()
+    #         await session.commit()
+    #         return transaction
 
     @classmethod
     async def get_transactions_by_account_id(cls, account_id: int) -> list[TransactionOrm]:
@@ -179,6 +205,86 @@ class TransactionRepository:
             transaction_schemas = [STransaction.model_validate(transaction_models) for transaction_models in transactions_models]
             return transaction_schemas
 
+    @classmethod
+    async def get_transaction_by_id(cls, transaction_id: int) -> STransactionAdd:
+        async with new_session() as session:
+            query = select(TransactionOrm).where(TransactionOrm.id == transaction_id)
+            result = await session.execute(query)
+            transaction = result.scalar()
+            return transaction
+
+    @classmethod
+    async def delete_transaction_by_id(cls, transaction_id: int):
+        async with new_session() as session:
+            query = select(TransactionOrm).where(TransactionOrm.id == transaction_id)
+            result = await session.execute(query)
+            transaction = result.scalar()
+
+            if not transaction:
+                raise HTTPException(status_code=404, detail="Transaction not found")
+
+            # Получение счёта, связанного с транзакцией
+            query_account = select(AccountOrm).where(AccountOrm.id == transaction.account_id)
+            result_account = await session.execute(query_account)
+            account = result_account.scalar()
+
+            if not account:
+                raise HTTPException(status_code=404, detail="Account not found")
+
+            # Обновление баланса счёта в зависимости от значения income транзакции
+            if transaction.income:
+                account.balance -= transaction.amount  # Вычитаем сумму транзакции из баланса
+            else:
+                account.balance += transaction.amount  # Прибавляем сумму транзакции к балансу
+
+            # Удаление транзакции из базы данных
+            session.delete(transaction)
+
+            # Сохранение изменений в базе данных
+            await session.commit()
+
+    @classmethod
+    async def update_transaction(cls, transaction_id: int, updated_data: STransactionAdd) -> dict:
+        async with new_session() as session:
+            query = select(TransactionOrm).where(TransactionOrm.id == transaction_id)
+            result = await session.execute(query)
+            transaction = result.scalar()
+
+            if not transaction:
+                raise HTTPException(status_code=404, detail="Transaction not found")
+
+            # Получение счёта, связанного с транзакцией
+            query_account = select(AccountOrm).where(AccountOrm.id == transaction.account_id)
+            result_account = await session.execute(query_account)
+            account = result_account.scalar()
+
+            if not account:
+                raise HTTPException(status_code=404, detail="Account not found")
+
+            # Вычисление изменения суммы транзакции
+            old_amount = transaction.amount
+            new_amount = updated_data.amount
+            amount_difference = new_amount - old_amount
+
+            # Обновление баланса счёта в зависимости от значения поля income
+            if transaction.income:
+                # Если доходная транзакция, вычитаем старую сумму и прибавляем новую
+                account.balance -= old_amount
+                account.balance += new_amount
+            else:
+                # Если расходная транзакция, прибавляем старую сумму и вычитаем новую
+                account.balance += old_amount
+                account.balance -= new_amount
+
+            # Обновляем данные транзакции на основе переданных данных
+            for field, value in updated_data.dict().items():
+                setattr(transaction, field, value)
+
+            # Сохраняем изменения в балансе счёта и транзакции в базе данных
+            await session.commit()
+
+            return transaction
+
 class CategoryRepository:
     @classmethod
     async def add_category(cls, data: SCategoryAdd) -> dict:
@@ -198,3 +304,17 @@ class CategoryRepository:
             category_schemas = [SCategory.model_validate(category_models) for category_models in
                                    categories_models]
             return category_schemas
+
+    @classmethod
+    async def delete_category(cls, category_id: int) -> dict:
+        async with new_session() as session:
+            query = select(CategoryOrm).where(CategoryOrm.id == category_id)
+            result = await session.execute(query)
+            category = result.scalars().first()
+
+            if category is None:
+                raise NoResultFound(f"Category with id {category_id} not found")
+
+            await session.delete(category)
+            await session.commit()
+            return {"message": "Category deleted successfully", "category_id": category_id}
