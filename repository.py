@@ -1,3 +1,5 @@
+from datetime import date, timedelta
+
 from fastapi import HTTPException
 from sqlalchemy import select, update, delete, func
 from sqlalchemy.exc import NoResultFound
@@ -304,6 +306,96 @@ class TransactionRepository:
             await session.commit()
 
             return transaction
+
+    # @classmethod
+    # async def get_income_transactions_sum_by_category(cls, user_id: int, day: str) -> dict:
+    #     async with new_session() as session:
+    #         query = select(TransactionOrm.amount, CategoryOrm.name).join(AccountOrm).join(CategoryOrm).where(
+    #             AccountOrm.user_id == user_id, TransactionOrm.income == True)
+    #         result = await session.execute(query)
+    #         transactions = result.fetchall()
+    #
+    #         transactions_sum_by_category = {}
+    #         for amount, category_name in transactions:
+    #             transactions_sum_by_category[category_name] = transactions_sum_by_category.get(category_name,
+    #                                                                                            0) + amount
+    #
+    #         return transactions_sum_by_category
+    #
+    # @classmethod
+    # async def get_expense_transactions_sum_by_category(cls, user_id: int, day: str) -> dict:
+    #     async with new_session() as session:
+    #         query = select(TransactionOrm.amount, CategoryOrm.name).join(AccountOrm).join(CategoryOrm).where(
+    #             AccountOrm.user_id == user_id, TransactionOrm.income == False)
+    #         result = await session.execute(query)
+    #         transactions = result.fetchall()
+    #
+    #         transactions_sum_by_category = {}
+    #         for amount, category_name in transactions:
+    #             transactions_sum_by_category[category_name] = transactions_sum_by_category.get(category_name,
+    #                                                                                            0) + amount
+    #
+    #         return transactions_sum_by_category
+
+    @classmethod
+    async def get_income_transactions_sum_by_category(cls, user_id: int, day: str) -> dict:
+        async with new_session() as session:
+            query = select(TransactionOrm.amount, CategoryOrm.name).join(AccountOrm).join(CategoryOrm).where(
+                AccountOrm.user_id == user_id, TransactionOrm.income == True)
+
+            current_date = date.today()
+
+            if day == "Day":
+                query = query.where(func.date(TransactionOrm.date) == current_date)
+            elif day == "Week":
+                start_date = current_date - timedelta(days=current_date.weekday())
+                query = query.where(func.date(TransactionOrm.date) >= start_date)
+            elif day == "Month":
+                start_date = current_date.replace(day=1)
+                query = query.where(func.date(TransactionOrm.date) >= start_date)
+            elif day == "Year":
+                start_date = current_date.replace(month=1, day=1)
+                query = query.where(func.date(TransactionOrm.date) >= start_date)
+
+            result = await session.execute(query)
+            transactions = result.fetchall()
+
+            transactions_sum_by_category = {}
+            for amount, category_name in transactions:
+                transactions_sum_by_category[category_name] = transactions_sum_by_category.get(category_name,
+                                                                                               0) + amount
+
+            return transactions_sum_by_category
+
+    @classmethod
+    async def get_expense_transactions_sum_by_category(cls, user_id: int, day: str) -> dict:
+        async with new_session() as session:
+            query = select(TransactionOrm.amount, CategoryOrm.name).join(AccountOrm).join(CategoryOrm).where(
+                AccountOrm.user_id == user_id, TransactionOrm.income == False)
+
+            current_date = date.today()
+
+            if day == "Day":
+                query = query.where(func.date(TransactionOrm.date) == current_date)
+            elif day == "Week":
+                start_date = current_date - timedelta(days=current_date.weekday())
+                query = query.where(func.date(TransactionOrm.date) >= start_date)
+            elif day == "Month":
+                start_date = current_date.replace(day=1)
+                query = query.where(func.date(TransactionOrm.date) >= start_date)
+            elif day == "Year":
+                start_date = current_date.replace(month=1, day=1)
+                query = query.where(func.date(TransactionOrm.date) >= start_date)
+
+            result = await session.execute(query)
+            transactions = result.fetchall()
+
+            transactions_sum_by_category = {}
+            for amount, category_name in transactions:
+                transactions_sum_by_category[category_name] = transactions_sum_by_category.get(category_name,
+                                                                                               0) + amount
+
+            return transactions_sum_by_category
 
 class CategoryRepository:
     @classmethod

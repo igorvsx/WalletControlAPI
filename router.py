@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Request, Body, HTTPException, Path
 from schemas import SUserAdd, SUser, SAccountAdd, SAccount, STransactionAdd, STransaction, SCategoryAdd, SCategory
 from repository import UserRepository, AccountRepository, TransactionRepository, CategoryRepository
-from typing import Annotated
+from typing import Annotated, Dict
 import random
 import string
 import smtplib
@@ -242,6 +242,30 @@ async def update_transaction(transaction_id: int,
         return {"message": "Transaction updated successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to update transaction: {str(e)}")
+
+# @transactionRouter.get("/user/{user_id}/income")
+# async def get_all_income_transactions_by_user_id(user_id: int) -> list[STransaction]:
+#     transactions = await TransactionRepository.get_income_transactions_sum_by_category(user_id)
+#     if not transactions:
+#         raise HTTPException(status_code=404, detail="Доходные транзакции для пользователя с данным идентификатором не найдены")
+#     return transactions
+
+@transactionRouter.get("/user/{user_id}/income/{day}", response_model=Dict[str, float])
+async def get_income_transactions_sum_by_category(user_id: int, day: str):
+    transactions_sum_by_category = await TransactionRepository.get_income_transactions_sum_by_category(user_id, day)
+    if not transactions_sum_by_category:
+        raise HTTPException(status_code=404,
+                            detail="Доходные транзакции для пользователя с данным идентификатором не найдены")
+    return transactions_sum_by_category
+
+@transactionRouter.get("/user/{user_id}/expense/{day}", response_model=Dict[str, float])
+async def get_expense_transactions_sum_by_category(user_id: int, day: str) -> list[STransaction]:
+    transactions_sum_by_category = await TransactionRepository.get_expense_transactions_sum_by_category(user_id, day)
+    if not transactions_sum_by_category:
+        raise HTTPException(status_code=404,
+                            detail="Расходные транзакции для пользователя с данным идентификатором не найдены")
+    return transactions_sum_by_category
+
 
 
 @categoryRouter.post("/add")
