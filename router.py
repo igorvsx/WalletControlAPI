@@ -155,6 +155,12 @@ async def get_accounts_by_user_id(user_id: int) -> list[SAccount]:
     if not accounts:
         raise HTTPException(status_code=404, detail="Счета для пользователя с данным идентификатором не найдены")
     return accounts
+@accountRouter.get("/user/detail/{account_id}")
+async def get_account_by_id(account_id: int) -> SAccount:
+    account = await AccountRepository.get_account_by_id(account_id)
+    if not account:
+        raise HTTPException(status_code=404, detail="Счет для пользователя с данным идентификатором не найден")
+    return account
 
 @accountRouter.post("/add")
 async def add_account(
@@ -171,6 +177,23 @@ async def get_accounts() -> list[SAccount]:
 async def get_total_balance(user_id: int):
     total_balance = await AccountRepository.get_total_balance(user_id)
     return {"total_balance": total_balance}
+
+@accountRouter.delete("/user/delete/{account_id}")
+async def delete_account(account_id: int):
+    try:
+        result = await AccountRepository.delete_account(account_id)
+        return result
+    except NoResultFound as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+@accountRouter.put("/update/{account_id}")
+async def update_account(account_id: int,
+        data: SAccountAdd = Body(...)):
+    try:
+        updated_account = await AccountRepository.update_account(account_id, data)
+        return {"message": "Account updated successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update transaction: {str(e)}")
 
 
 @transactionRouter.get("")

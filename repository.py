@@ -98,20 +98,28 @@ class AccountRepository:
             return account
 
     @classmethod
-    async def update_account(cls, account_id: int, data: SAccountAdd) -> bool:
+    async def update_account(cls, account_id: int, data: SAccountAdd) -> dict:
         async with new_session() as session:
-            query = update(AccountOrm).where(AccountOrm.id == account_id).values(**data.dict())
+            query = select(AccountOrm).where(AccountOrm.id == account_id)
             result = await session.execute(query)
+            account = result.scalar()
+
+            if not account:
+                raise HTTPException(status_code=404, detail="Account not found")
+
+            for field, value in data.dict().items():
+                setattr(account, field, value)
+
             await session.commit()
-            return result.rowcount > 0
+            return account
 
     @classmethod
-    async def delete_account(cls, account_id: int) -> bool:
+    async def delete_account(cls, account_id: int) -> dict:
         async with new_session() as session:
             query = delete(AccountOrm).where(AccountOrm.id == account_id)
             result = await session.execute(query)
             await session.commit()
-            return result.rowcount > 0
+            return {"message": "Account deleted successfully", "account_id": account_id}
 
     @classmethod
     async def get_accounts_by_user_id(cls, user_id: int) -> list[AccountOrm]:
@@ -137,6 +145,18 @@ class AccountRepository:
             result = await session.execute(query)
             total_balance = result.scalar()
             return total_balance if total_balance is not None else 0.0
+
+    @classmethod
+    async def get_account_by_id(cls, account_id: int) -> SAccount:
+        async with new_session() as session:
+            query = select(AccountOrm).where(AccountOrm.id == account_id)
+            result = await session.execute(query)
+            account_model = result.scalar()
+            if account_model:
+                account_schema = SAccount.model_validate(account_model)
+                return account_schema
+            else:
+                raise HTTPException(status_code=404, detail="Account not found")
 
 class TransactionRepository:
     @classmethod
