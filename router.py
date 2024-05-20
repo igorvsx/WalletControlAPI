@@ -310,12 +310,19 @@ async def get_financial_goals_by_user_id(user_id: int, is_done: bool) -> list[SF
     financial_goals = await FinancialGoalRepository.get_financial_goals_by_user_id(user_id, is_done)
     return financial_goals
 
-@financialGoalRouter.get("/detail/{financial_goal_id}")
+
+@financialGoalRouter.get("/detail/{financial_goal_id}", response_model=SFinancialGoal)
 async def get_financial_goal_by_id(financial_goal_id: int) -> SFinancialGoal:
+    print(f"Запрошенный ID финансовой цели: {financial_goal_id}")
+
     financial_goal = await FinancialGoalRepository.get_financial_goal_by_id(financial_goal_id)
+
     if not financial_goal:
         raise HTTPException(status_code=404, detail="Финансовая цель не найдена")
-    return financial_goal
+
+    print(f"Полученные данные: {financial_goal}")
+
+    return SFinancialGoal.model_validate(financial_goal)
 
 @financialGoalRouter.put("/update/{financial_goal_id}")
 async def update_financial_goal(financial_goal_id: int,

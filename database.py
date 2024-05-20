@@ -74,7 +74,7 @@ class CategoryOrm(Base):
     )
 
 class FinancialGoalOrm(Base):
-    __tablename__ = "financial_goal"
+    __tablename__ = "financial_goals"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str]
