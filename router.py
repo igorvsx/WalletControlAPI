@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, Request, Body, HTTPException, Path
-from schemas import SUserAdd, SUser, SAccountAdd, SAccount, STransactionAdd, STransaction, SCategoryAdd, SCategory
-from repository import UserRepository, AccountRepository, TransactionRepository, CategoryRepository
+from schemas import (SUserAdd, SUser, SAccountAdd, SAccount, STransactionAdd, STransaction, SCategoryAdd, SCategory,
+                     SFinancialGoalAdd, SFinancialGoal)
+from repository import (UserRepository, AccountRepository, TransactionRepository, CategoryRepository,
+                        FinancialGoalRepository)
 from typing import Annotated, Dict
 import random
 import string
@@ -54,6 +56,11 @@ transactionRouter = APIRouter(
 categoryRouter = APIRouter(
     prefix="/categories",
     tags=["Категории"],
+)
+
+financialGoalRouter = APIRouter(
+    prefix="/financial-goals",
+    tags=["Финансовые цели"],
 )
 
 @router.post("/add")
@@ -286,3 +293,44 @@ async def delete_category(category_id: int):
         return result
     except NoResultFound as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+@financialGoalRouter.post("/add")
+async def add_financial_goal(
+        data: SFinancialGoalAdd = Body(...)
+):
+    financial_goal = await FinancialGoalRepository.add_financial_goal(data)
+
+@financialGoalRouter.get("")
+async def get_financial_goals() -> list[SFinancialGoal]:
+    financial_goals = await FinancialGoalRepository.get_financial_goals()
+    return financial_goals
+
+@financialGoalRouter.get("/{user_id}/{is_done}")
+async def get_financial_goals_by_user_id(user_id: int, is_done: bool) -> list[SFinancialGoal]:
+    financial_goals = await FinancialGoalRepository.get_financial_goals_by_user_id(user_id, is_done)
+    return financial_goals
+
+@financialGoalRouter.get("/detail/{financial_goal_id}")
+async def get_financial_goal_by_id(financial_goal_id: int) -> SFinancialGoal:
+    financial_goal = await FinancialGoalRepository.get_financial_goal_by_id(financial_goal_id)
+    if not financial_goal:
+        raise HTTPException(status_code=404, detail="Финансовая цель не найдена")
+    return financial_goal
+
+@financialGoalRouter.put("/update/{financial_goal_id}")
+async def update_financial_goal(financial_goal_id: int,
+        data: SFinancialGoalAdd = Body(...)):
+    try:
+        updated_financial_goal = await FinancialGoalRepository.update_financial_goal(financial_goal_id, data)
+        return {"message": "Financial goal updated successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update financial goal: {str(e)}")
+
+@financialGoalRouter.delete("/delete/{financial_goal_id}")
+async def delete_financial_goal(financial_goal_id: int):
+    try:
+        result = await FinancialGoalRepository.delete_financial_goal(financial_goal_id)
+        return result
+    except NoResultFound as e:
+        raise HTTPException(status_code=404, detail=str(e))
+

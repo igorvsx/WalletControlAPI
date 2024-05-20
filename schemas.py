@@ -1,4 +1,5 @@
 from pydantic import BaseModel, ConfigDict
+from typing import Optional
 
 class SUserAdd(BaseModel):
     name: str
@@ -40,6 +41,20 @@ class SCategoryAdd(BaseModel):
     name: str
 
 class SCategory(SCategoryAdd):
+    id: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+class SFinancialGoalAdd(BaseModel):
+    name: str
+    desc: Optional[str]
+    amount: float
+    target_amount: float
+    target_date: Optional[str]
+    is_done: bool
+    user_id: int
+
+class SFinancialGoal(SFinancialGoalAdd):
     id: int
 
     model_config = ConfigDict(from_attributes=True)

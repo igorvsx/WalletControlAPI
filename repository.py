@@ -6,8 +6,9 @@ from sqlalchemy.exc import NoResultFound
 
 # from database import new_session, UserOrm
 from database import new_session
-from database import UserOrm, AccountOrm, TransactionOrm, CategoryOrm
-from schemas import SUserAdd, SUser, SAccount, SAccountAdd, STransaction, STransactionAdd, SCategoryAdd, SCategory
+from database import UserOrm, AccountOrm, TransactionOrm, CategoryOrm, FinancialGoalOrm
+from schemas import (SUserAdd, SUser, SAccount, SAccountAdd, STransaction, STransactionAdd, SCategoryAdd, SCategory,
+                     SFinancialGoalAdd, SFinancialGoal)
 
 class UserRepository:
     @classmethod
@@ -430,3 +431,73 @@ class CategoryRepository:
             await session.delete(category)
             await session.commit()
             return {"message": "Category deleted successfully", "category_id": category_id}
+
+class FinancialGoalRepository:
+    @classmethod
+    async def add_financial_goal(cls, data: SFinancialGoalAdd) -> dict:
+        async with new_session() as session:
+            financial_goal = FinancialGoalOrm(**data.dict())
+            session.add(financial_goal)
+            await session.flush()
+            await session.commit()
+            return financial_goal
+
+    @classmethod
+    async def update_financial_goal(cls, goal_id: int, data: SFinancialGoalAdd) -> dict:
+        async with new_session() as session:
+            query = select(FinancialGoalOrm).where(FinancialGoalOrm.id == goal_id)
+            result = await session.execute(query)
+            financial_goal = result.scalar()
+
+            if not financial_goal:
+                raise HTTPException(status_code=404, detail="Financial goal not found")
+
+            for field, value in data.dict().items():
+                setattr(financial_goal, field, value)
+
+            await session.commit()
+            return financial_goal
+
+    @classmethod
+    async def delete_financial_goal(cls, goal_id: int) -> dict:
+        async with new_session() as session:
+            query = delete(FinancialGoalOrm).where(FinancialGoalOrm.id == goal_id)
+            result = await session.execute(query)
+            await session.commit()
+            return {"message": "Financial goal deleted successfully", "goal_id": goal_id}
+
+    @classmethod
+    async def get_financial_goal_by_id(cls, goal_id: int) -> SFinancialGoal:
+        async with new_session() as session:
+            query = select(FinancialGoalOrm).where(FinancialGoalOrm.id == goal_id)
+            result = await session.execute(query)
+            financial_goal_model = result.scalar()
+            if financial_goal_model:
+                financial_goal_schema = SFinancialGoal.model_validate(financial_goal_model)
+                return financial_goal_schema
+            else:
+                raise HTTPException(status_code=404, detail="Financial goal not found")
+
+    @classmethod
+    async def get_financial_goals(cls) -> list[FinancialGoalOrm]:
+        async with new_session() as session:
+            query = select(FinancialGoalOrm)
+            result = await session.execute(query)
+            financial_goals = result.scalars().all()
+            return financial_goals
+
+    @classmethod
+    async def get_financial_goals_by_user_id(cls, user_id: int, is_done: bool) -> list[SFinancialGoal]:
+        async with new_session() as session:
+            query = select(FinancialGoalOrm).where(
+                FinancialGoalOrm.user_id == user_id,
+                FinancialGoalOrm.is_done == is_done
+            )
+            result = await session.execute(query)
+            financial_goals_models = result.scalars().all()
+            financial_goals_schemas = [
+                SFinancialGoal.model_validate(financial_goal_model)
+                for financial_goal_model in financial_goals_models
+            ]
+            return financial_goals_schemas
+

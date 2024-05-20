@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from sqlalchemy.orm import Mapped, DeclarativeBase, mapped_column, relationship
 from sqlalchemy import ForeignKey
-from typing import List
+from typing import List, Optional
 
 engine = create_async_engine(
     "sqlite+aiosqlite:///finance.db"
@@ -28,6 +28,9 @@ class UserOrm(Base):
     code: Mapped[str]
 
     accounts: Mapped[List["AccountOrm"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
+    financial_goals: Mapped[List["FinancialGoalOrm"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
 
@@ -69,6 +72,20 @@ class CategoryOrm(Base):
     transactions: Mapped[List["TransactionOrm"]] = relationship(
         back_populates="category", cascade="all, delete-orphan"
     )
+
+class FinancialGoalOrm(Base):
+    __tablename__ = "financial_goal"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str]
+    desc: Mapped[Optional[str]] = mapped_column(nullable=True)
+    amount: Mapped[float]
+    target_amount: Mapped[float]
+    target_date: Mapped[Optional[str]] = mapped_column(nullable=True)
+    is_done: Mapped[bool]
+    user_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
+
+    user = relationship("UserOrm", back_populates="financial_goals")
 
 # user_table = Table(
 #     "users",
