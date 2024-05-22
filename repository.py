@@ -467,12 +467,16 @@ class FinancialGoalRepository:
             return {"message": "Financial goal deleted successfully", "goal_id": goal_id}
 
     @classmethod
-    async def get_financial_goal_by_id(cls, goal_id: int) -> SFinancialGoalAdd:
+    async def get_financial_goal_by_id(cls, goal_id: int) -> SFinancialGoal:
         async with new_session() as session:
             query = select(FinancialGoalOrm).where(FinancialGoalOrm.id == goal_id)
             result = await session.execute(query)
-            financial_goal = result.scalar()
-            return financial_goal
+            financial_goal_model = result.scalar()
+            if financial_goal_model:
+                financial_goal_schema = SFinancialGoal.model_validate(financial_goal_model)
+                return financial_goal_schema
+            else:
+                raise HTTPException(status_code=404, detail="Financial goal not found")
 
     @classmethod
     async def get_financial_goals(cls) -> list[FinancialGoalOrm]:
