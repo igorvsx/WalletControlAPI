@@ -261,7 +261,7 @@ class TransactionRepository:
                 account.balance += transaction.amount  # Прибавляем сумму транзакции к балансу
 
             # Удаление транзакции из базы данных
-            session.delete(transaction)
+            await session.delete(transaction)
 
             # Сохранение изменений в базе данных
             await session.commit()
