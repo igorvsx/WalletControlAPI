@@ -353,8 +353,8 @@ async def get_budgets() -> list[SBudget]:
     return budgets
 
 @budgetRouter.get("/detail/{budget_id}")
-async def get_budget_by_id(goal_id: int) -> SBudget:
-    budget = await BudgetRepository.get_budget_by_id(goal_id)
+async def get_budget_by_id(budget_id: int) -> SBudget:
+    budget = await BudgetRepository.get_budget_by_id(budget_id)
     if not budget:
         raise HTTPException(status_code=404, detail="Бюджет не найден")
     return budget
