@@ -6,9 +6,9 @@ from sqlalchemy.exc import NoResultFound
 
 # from database import new_session, UserOrm
 from database import new_session
-from database import UserOrm, AccountOrm, TransactionOrm, CategoryOrm, FinancialGoalOrm
+from database import UserOrm, AccountOrm, TransactionOrm, CategoryOrm, FinancialGoalOrm, BudgetOrm
 from schemas import (SUserAdd, SUser, SAccount, SAccountAdd, STransaction, STransactionAdd, SCategoryAdd, SCategory,
-                     SFinancialGoalAdd, SFinancialGoal)
+                     SFinancialGoalAdd, SFinancialGoal, SBudget, SBudgetAdd)
 
 class UserRepository:
     @classmethod
@@ -500,4 +500,69 @@ class FinancialGoalRepository:
                 for financial_goal_model in financial_goals_models
             ]
             return financial_goals_schemas
+
+class BudgetRepository:
+    @classmethod
+    async def add_budget(cls, data: SBudgetAdd) -> dict:
+        async with new_session() as session:
+            budget = BudgetOrm(**data.dict())
+            session.add(budget)
+            await session.flush()
+            await session.commit()
+            return budget
+
+    @classmethod
+    async def update_budget(cls, budget_id: int, data: SBudgetAdd) -> dict:
+        async with new_session() as session:
+            query = select(BudgetOrm).where(BudgetOrm.id == budget_id)
+            result = await session.execute(query)
+            budget = result.scalar()
+
+            if not budget:
+                raise HTTPException(status_code=404, detail="Budget not found")
+
+            for field, value in data.dict().items():
+                setattr(budget, field, value)
+
+            await session.commit()
+            return budget
+
+    @classmethod
+    async def delete_budget(cls, budget_id: int) -> dict:
+        async with new_session() as session:
+            query = delete(BudgetOrm).where(BudgetOrm.id == budget_id)
+            result = await session.execute(query)
+            await session.commit()
+            return {"message": "Budget deleted successfully", "budget_id": budget_id}
+
+    @classmethod
+    async def get_budget_by_id(cls, budget_id: int) -> SBudget:
+        async with new_session() as session:
+            query = select(BudgetOrm).where(BudgetOrm.id == budget_id)
+            result = await session.execute(query)
+            budget_model = result.scalar()
+            if budget_model:
+                budget_schema = SBudget.model_validate(budget_model)
+                return budget_schema
+            else:
+                raise HTTPException(status_code=404, detail="Budget not found")
+
+    @classmethod
+    async def get_budgets(cls) -> list[SBudget]:
+        async with new_session() as session:
+            query = select(BudgetOrm)
+            result = await session.execute(query)
+            budgets_models = result.scalars().all()
+            budget_schemas = [SBudget.model_validate(budget_models) for budget_models in budgets_models]
+            return budget_schemas
+
+    @classmethod
+    async def get_budgets_by_user_id(cls, user_id: int) -> list[SBudget]:
+        async with new_session() as session:
+            query = select(BudgetOrm).where(BudgetOrm.user_id == user_id)
+            result = await session.execute(query)
+            budgets_models = result.scalars().all()
+            budget_schemas = [SBudget.model_validate(budget_models) for budget_models in budgets_models]
+            return budget_schemas
+
 

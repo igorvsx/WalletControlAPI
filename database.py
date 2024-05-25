@@ -33,6 +33,9 @@ class UserOrm(Base):
     financial_goals: Mapped[List["FinancialGoalOrm"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
+    budgets: Mapped[List["BudgetOrm"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
 
 class AccountOrm(Base):
     __tablename__ = "accounts"
@@ -45,6 +48,9 @@ class AccountOrm(Base):
     user = relationship("UserOrm", back_populates="accounts")
 
     transactions: Mapped[List["TransactionOrm"]] = relationship(
+        back_populates="account", cascade="all, delete-orphan"
+    )
+    budgets: Mapped[List["BudgetOrm"]] = relationship(
         back_populates="account", cascade="all, delete-orphan"
     )
 
@@ -86,6 +92,21 @@ class FinancialGoalOrm(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
 
     user = relationship("UserOrm", back_populates="financial_goals")
+
+class BudgetOrm(Base):
+    __tablename__ = "budgets"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str]
+    amount: Mapped[float]
+    wasted: Mapped[float]
+    date: Mapped[str]
+    target_date: Mapped[str]
+    user_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
+    account_id: Mapped[int] = mapped_column(ForeignKey('accounts.id'))
+
+    user = relationship("UserOrm", back_populates="budgets")
+    account = relationship("AccountOrm", back_populates="budgets")
 
 # user_table = Table(
 #     "users",

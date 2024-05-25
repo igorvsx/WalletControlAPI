@@ -58,3 +58,17 @@ class SFinancialGoal(SFinancialGoalAdd):
     id: int
 
     model_config = ConfigDict(from_attributes=True)
+
+class SBudgetAdd(BaseModel):
+    name: str
+    amount: float
+    wasted: float
+    date: str
+    target_date: str
+    user_id: int
+    account_id: int
+
+class SBudget(SBudgetAdd):
+    id: int
+
+    model_config = ConfigDict(from_attributes=True)

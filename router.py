@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, Request, Body, HTTPException, Path
 from schemas import (SUserAdd, SUser, SAccountAdd, SAccount, STransactionAdd, STransaction, SCategoryAdd, SCategory,
-                     SFinancialGoalAdd, SFinancialGoal)
+                     SFinancialGoalAdd, SFinancialGoal, SBudget, SBudgetAdd)
 from repository import (UserRepository, AccountRepository, TransactionRepository, CategoryRepository,
-                        FinancialGoalRepository)
+                        FinancialGoalRepository, BudgetRepository)
 from typing import Annotated, Dict
 import random
 import string
@@ -61,6 +61,11 @@ categoryRouter = APIRouter(
 financialGoalRouter = APIRouter(
     prefix="/financial-goals",
     tags=["Финансовые цели"],
+)
+
+budgetRouter = APIRouter(
+    prefix="/budgets",
+    tags=["Бюджеты"],
 )
 
 @router.post("/add")
@@ -331,6 +336,47 @@ async def update_financial_goal(financial_goal_id: int,
 async def delete_financial_goal(financial_goal_id: int):
     try:
         result = await FinancialGoalRepository.delete_financial_goal(financial_goal_id)
+        return result
+    except NoResultFound as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@budgetRouter.post("/add")
+async def add_budget(
+        data: SBudgetAdd = Body(...)
+):
+    budget = await BudgetRepository.add_budget(data)
+
+@budgetRouter.get("")
+async def get_budgets() -> list[SBudget]:
+    budgets = await BudgetRepository.get_budgets()
+    return budgets
+
+@budgetRouter.get("/detail/{budget_id}")
+async def get_budget_by_id(goal_id: int) -> SBudget:
+    budget = await BudgetRepository.get_budget_by_id(goal_id)
+    if not budget:
+        raise HTTPException(status_code=404, detail="Бюджет не найден")
+    return budget
+
+@budgetRouter.get("/{user_id}")
+async def get_budgets_by_user_id(user_id: int) -> list[SBudget]:
+    budgets = await BudgetRepository.get_budgets_by_user_id(user_id)
+    return budgets
+
+@budgetRouter.put("/update/{budget_id}")
+async def update_budget(budget_id: int,
+        data: SBudgetAdd = Body(...)):
+    try:
+        updated_budget = await BudgetRepository.update_budget(budget_id, data)
+        return {"message": "Budget updated successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update budget: {str(e)}")
+
+@budgetRouter.delete("/delete/{budget_id}")
+async def delete_budget(budget_id: int):
+    try:
+        result = await BudgetRepository.delete_budget(budget_id)
         return result
     except NoResultFound as e:
         raise HTTPException(status_code=404, detail=str(e))
