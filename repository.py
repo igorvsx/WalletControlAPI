@@ -315,10 +315,13 @@ class TransactionRepository:
             new_amount = updated_data.amount
             amount_difference = abs(new_amount - old_amount)
 
-            # Обновление баланса счёта в зависимости от значения поля income=
-            if transaction.income == False:
+            # Обновление баланса счёта в зависимости от значения поля income
+            if transaction.income:
                 account.balance -= old_amount
                 account.balance += new_amount
+            else:
+                account.balance += old_amount
+                account.balance -= new_amount
 
             # Получение бюджета, связанного с транзакцией
             budget_query = select(BudgetOrm).where(
@@ -331,15 +334,8 @@ class TransactionRepository:
 
             if budget:
                 # Вычесть старую сумму из бюджета
-                if transaction.income:
-                    budget.wasted += old_amount
-                else:
+                if transaction.income == False:
                     budget.wasted -= old_amount
-
-                # Добавить новую сумму в бюджет
-                if updated_data.income:
-                    budget.wasted -= new_amount
-                else:
                     budget.wasted += new_amount
 
             # Обновляем данные транзакции на основе переданных данных
