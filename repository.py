@@ -183,6 +183,19 @@ class TransactionRepository:
             else:
                 account.balance -= data.amount
 
+            # Получение бюджета, связанного с транзакцией, и обновление его поля wasted
+            budget_query = select(BudgetOrm).where(
+                BudgetOrm.account_id == data.account_id,
+                BudgetOrm.date <= transaction.date,
+                BudgetOrm.target_date >= transaction.date
+            )
+            budget_result = await session.execute(budget_query)
+            budget = budget_result.scalar()
+
+            if budget:
+                if data.income == False:
+                    budget.wasted += data.amount
+
             # Сохранение изменений в базе данных
             await session.flush()
             await session.commit()
@@ -260,6 +273,19 @@ class TransactionRepository:
             else:
                 account.balance += transaction.amount  # Прибавляем сумму транзакции к балансу
 
+            # Получение бюджета, связанного с транзакцией
+            budget_query = select(BudgetOrm).where(
+                BudgetOrm.account_id == transaction.account_id,
+                BudgetOrm.date <= transaction.date,
+                BudgetOrm.target_date >= transaction.date
+            )
+            budget_result = await session.execute(budget_query)
+            budget = budget_result.scalar()
+
+            if budget:
+                if transaction.income == False:
+                    budget.wasted -= transaction.amount
+
             # Удаление транзакции из базы данных
             await session.delete(transaction)
 
@@ -287,17 +313,34 @@ class TransactionRepository:
             # Вычисление изменения суммы транзакции
             old_amount = transaction.amount
             new_amount = updated_data.amount
-            amount_difference = new_amount - old_amount
+            amount_difference = abs(new_amount - old_amount)
 
-            # Обновление баланса счёта в зависимости от значения поля income
-            if transaction.income:
-                # Если доходная транзакция, вычитаем старую сумму и прибавляем новую
+            # Обновление баланса счёта в зависимости от значения поля income=
+            if transaction.income == False:
                 account.balance -= old_amount
                 account.balance += new_amount
-            else:
-                # Если расходная транзакция, прибавляем старую сумму и вычитаем новую
-                account.balance += old_amount
-                account.balance -= new_amount
+
+            # Получение бюджета, связанного с транзакцией
+            budget_query = select(BudgetOrm).where(
+                BudgetOrm.account_id == transaction.account_id,
+                BudgetOrm.date <= transaction.date,
+                BudgetOrm.target_date >= transaction.date
+            )
+            budget_result = await session.execute(budget_query)
+            budget = budget_result.scalar()
+
+            if budget:
+                # Вычесть старую сумму из бюджета
+                if transaction.income:
+                    budget.wasted += old_amount
+                else:
+                    budget.wasted -= old_amount
+
+                # Добавить новую сумму в бюджет
+                if updated_data.income:
+                    budget.wasted -= new_amount
+                else:
+                    budget.wasted += new_amount
 
             # Обновляем данные транзакции на основе переданных данных
             for field, value in updated_data.dict().items():
