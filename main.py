@@ -27,6 +27,6 @@ app.include_router(category_router)
 app.include_router(financial_goal_router)
 app.include_router(budget_router)
 
-if __name__ == "__main__":
-    uvicorn.run(app, host="192.168.0.115", port=8000)
+# if __name__ == "__main__":
+#     uvicorn.run(app, host="192.168.0.115", port=8000)
 
